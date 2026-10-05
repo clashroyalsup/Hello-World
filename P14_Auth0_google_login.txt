@@ -1,0 +1,138 @@
+Practical: Google login using Auth0 (NetBeans, JSP + Servlets)
+Project: MyWebApp   Callback: http://localhost:8080/MyWebApp/callback
+Allowed Logout URL: http://localhost:8080/MyWebApp/
+
+==================== login.jsp ====================
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+</head>
+<body>
+<h2>My Application</h2>
+<a href="${pageContext.request.contextPath}/login">
+    Login with Google
+</a>
+</body>
+</html>
+
+==================== LoginServlet.java (package com.myapp, mapped to /login) ====================
+package com.myapp;
+
+import java.io.IOException;
+import java.net.URLEncoder;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+@WebServlet("/login")
+public class LoginServlet extends HttpServlet {
+
+    @Override
+    protected void doGet(HttpServletRequest request,
+                          HttpServletResponse response)
+            throws ServletException, IOException {
+
+        String domain = "YOUR DOMAIN VALUE ";
+        String clientId = "YOUR CLIENT VALUE";
+        String callback =
+                "YOUR CALLBACK URL";
+
+        String url =
+                "https://" + domain +
+                "/authorize" +
+                "?response_type=code" +
+                "&client_id=" + clientId +
+                "&redirect_uri=" +
+                URLEncoder.encode(callback, "UTF-8") +
+                "&scope=" +
+                URLEncoder.encode(
+                    "openid profile email", "UTF-8") + "&connection=google-oauth2";
+
+        response.sendRedirect(url);
+    }
+}
+
+Step 8 note from the doc (already included in the code above): to go
+directly to Google instead of the Auth0 login page, add
+&connection=google-oauth2
+
+So this part:
+"&scope=" +
+URLEncoder.encode("openid profile email", "UTF-8");
+
+becomes:
+"&scope=" +
+URLEncoder.encode("openid profile email", "UTF-8") +
+"&connection=google-oauth2";
+
+==================== CallbackServlet.java (package com.myapp, mapped to /callback) ====================
+package com.myapp;
+
+import java.io.IOException;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+@WebServlet("/callback")
+public class CallbackServlet extends HttpServlet {
+
+    @Override
+    protected void doGet(HttpServletRequest request,
+                          HttpServletResponse response)
+            throws ServletException, IOException {
+
+        String code = request.getParameter("code");
+
+        if (code == null) {
+            response.sendError(
+                HttpServletResponse.SC_UNAUTHORIZED,
+                "Login failed"
+            );
+            return;
+        }
+
+        /*
+         * Here we will exchange the authorization code
+         * with Auth0 for the user's tokens.
+         */
+
+        HttpSession session = request.getSession();
+        session.setAttribute("loggedIn", true);
+
+        response.sendRedirect(
+            request.getContextPath() + "/home.jsp"
+        );
+    }
+}
+
+==================== home.jsp ====================
+<%
+    Boolean loggedIn =
+        (Boolean) session.getAttribute("loggedIn");
+
+    if (!Boolean.TRUE.equals(loggedIn)) {
+        response.sendRedirect("login.jsp");
+        return;
+    }
+%>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Home</title>
+</head>
+<body>
+<h2>Welcome!</h2>
+<p>You are logged in.</p>
+<a href="logout">Logout</a>
+</body>
+</html>
+
+==================== Test ====================
+http://localhost:8080/MyWebApp/login.jsp
+Sign in with Google account, accept request. Practical successful.

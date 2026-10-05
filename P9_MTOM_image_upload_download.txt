@@ -1,0 +1,148 @@
+MTOM (Message Transmission Optimization Mechanism) web service: image upload / download
+
+What is MTOM?
+MTOM allows web services to send binary content, such as images or files,
+without converting it to base64 text within the SOAP envelope. Normally,
+binary data is converted to xs:base64Binary in XML, which increases the data
+size by approximately 33% and adds processing overhead. MTOM overcomes this
+by transmitting binary data as separate MIME attachments while keeping it
+logically part of the SOAP message.
+
+==================== imagews1.java (package tycs) ====================
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package tycs;
+import java.io.*;
+import javax.jws.Oneway;
+import javax.jws.WebService;
+import javax.jws.WebMethod;
+import javax.jws.WebParam;
+import javax.xml.ws.soap.MTOM;
+/**
+ *
+ * @author Administrator
+ */
+@MTOM(enabled=true, threshold=6000)
+@WebService(serviceName = "imagews1")
+public class imagews1 {
+
+  /**
+   * This is a sample web service operation
+   */
+  @WebMethod(operationName = "hello")
+  public String hello(@WebParam(name = "name") String txt) {
+     return "Hello " + txt + " !";
+  }
+
+  /**
+   * Web service operation
+   */
+  @WebMethod(operationName = "upload")
+  @Oneway
+  public void upload(@WebParam(name = "Filename") String Filename, @WebParam(name =
+"ImageBytes") byte[] ImageBytes) {
+     String filePath = "C:\\Users\\Administrator\\Downloads\\" +Filename;
+     try{FileOutputStream fos = new FileOutputStream(filePath);
+          BufferedOutputStream bos = new BufferedOutputStream(fos);
+          bos.write(ImageBytes);
+   System.out.println("Received file:" +filePath);
+  } catch (Exception ex) {
+  System.out.println(ex);
+}
+}
+
+    /**
+     * Web service operation
+     */
+    @WebMethod(operationName = "download")
+    public byte[] download(@WebParam(name = "Filename") String Filename) {
+       String filePath = "C:\\Users\\Administrator\\Downloads\\" +Filename;
+        System.out.println("Sending file:" +filePath);
+        try{FileInputStream fis = new FileInputStream(new File(filePath));
+        BufferedInputStream bis = new BufferedInputStream(fis);
+           byte[] fileBytes = new byte[(int) new File(filePath).length()];
+           bis.read(fileBytes);
+           return fileBytes;
+        } catch (Exception ex) {
+           System.out.println(ex);
+        }
+        return null;
+        }
+
+    }
+
+==================== index.jsp ====================
+<%--
+    Document   : index
+    Created on : 3 Aug, 2026, 11:41:47 AM
+    Author     : Administrator
+--%>
+
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <title>JSP Page</title>
+    </head>
+    <body>
+        <h1>Hello World!</h1>
+      <%
+try {
+  cs.Imagews1_Service service = new cs.Imagews1_Service();
+  cs.Imagews1 port = service.getImagews1Port();
+
+  javax.xml.ws.BindingProvider bp = (javax.xml.ws.BindingProvider) port;
+  javax.xml.ws.soap.SOAPBinding binding = (javax.xml.ws.soap.SOAPBinding) bp.getBinding();
+  binding.setMTOMEnabled(true);
+
+  String action = request.getParameter("action");
+  String filename = request.getParameter("filename");
+  if ("upload".equals(action) && filename != null) {
+        java.io.File file = new java.io.File("C:\\Users\\Administrator\\Downloads\\" + filename);
+        if (file.exists()) {
+            byte[] bytes = new byte[(int) file.length()];
+            java.io.FileInputStream fis = null;
+            try {
+                fis = new java.io.FileInputStream(file);
+                fis.read(bytes);
+            } finally {
+                if (fis != null) { fis.close(); }
+            }
+            port.upload(filename, bytes);
+            out.println("<p style='color:green;'>Uploaded successfully via MTOM!</p>");
+        } else {
+            out.println("<p style='color:red;'>File not found in Downloads folder!</p>");
+        }
+  }
+
+  if ("download".equals(action) && filename != null) {
+        byte[] imgBytes = port.download(filename);
+           if (imgBytes != null && imgBytes.length > 0) {
+               String base64Str = javax.xml.bind.DatatypeConverter.printBase64Binary(imgBytes);
+               out.println("<h3>Downloaded Image:</h3>");
+               out.println("<img src='data:image/jpeg;base64," + base64Str + "' width='300'/>");
+           } else {
+               out.println("<p style='color:red;'>File not found on server.</p>");
+           }
+       }
+   } catch (Exception e) {
+       out.println("<p style='color:red;'>Error: " + e.getMessage() + "</p>");
+   }
+
+ %>
+   <hr/>
+ <form action="index.jsp" method="POST">
+   Enter Filename:
+   <input type="text" name="filename" placeholder="test.jpg" required>
+   <br/><br/>
+   <button type="submit" name="action" value="upload">Upload File</button>
+   <button type="submit" name="action" value="download">Download File</button>
+ </form>
+
+ </body>
+</html>
+
+NOTE: While downloading and uploading the file name should be same.

@@ -1,0 +1,96 @@
+Practical 2: SOAP web service - One-Way operation (NetBeans + MySQL)
+
+==================== Step 1: MySQL Database ====================
+CREATE DATABASE ty49;
+USE ty49;
+CREATE TABLE student (id INT PRIMARY KEY, name VARCHAR(50), class VARCHAR(50));
+
+==================== oneway.java (package tyc9) ====================
+package tyc9;
+
+import java.sql.DriverManager;
+import javax.jws.WebService;
+import javax.jws.WebMethod;
+import javax.jws.WebParam;
+
+@WebService(serviceName = "oneway")
+public class oneway {
+
+    @WebMethod(operationName = "hello")
+    public String hello(@WebParam(name = "name") String txt) {
+        return "Hello " + txt + " !";
+    }
+
+    @WebMethod(operationName = "insertstudent")
+    public String insertstudent(
+            @WebParam(name = "id") int id,
+            @WebParam(name = "name") String name,
+            @WebParam(name = "sclass") final String sclass) {
+        try {
+            Class.forName("com.mysql.jdbc.Driver");
+            java.sql.Connection con = DriverManager.getConnection(
+                    "jdbc:mysql://localhost:3306/ty49", "root", "mysql");
+            java.sql.PreparedStatement ps = con.prepareStatement(
+                    "INSERT INTO student VALUES (?, ?, ?)");
+            ps.setInt(1, id);
+            ps.setString(2, name);
+            ps.setString(3, sclass);
+            int i = ps.executeUpdate();
+            ps.close();
+            con.close();
+            return i + " record inserted";
+        } catch (Exception e) {
+            return "Error = " + e;
+        }
+    }
+}
+
+==================== newjsp.jsp (Input Form) ====================
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head><title>Student Entry Form</title></head>
+<body>
+<h2>Student Information Entry</h2>
+<form action="index.jsp" method="POST">
+Student ID: <input type="text" name="t1" /><br>
+Student Name: <input type="text" name="t2" /><br>
+Student Class: <input type="text" name="t3" /><br>
+<input type="submit" value="Insert">
+</form>
+</body>
+</html>
+
+==================== index.jsp (Client JSP) ====================
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head><title>Web Service Client</title></head>
+<body>
+<h2>Web Service Invocation Result</h2><hr/>
+<% try {
+
+tyc9.Oneway_Service service = new tyc9.Oneway_Service();
+tyc9.Oneway port = service.getOnewayPort();
+
+int id = Integer.parseInt(request.getParameter("t1"));
+java.lang.String name = request.getParameter("t2");
+
+java.lang.String sclass = request.getParameter("t3");
+
+java.lang.String result = port.insertstudent(id, name, sclass);
+out.println("<b>Result:</b> " + result);
+
+} catch (Exception ex) {
+
+out.println("<b>Error:</b> " + ex.getMessage());
+
+} %><hr/>
+
+<a href="newjsp.jsp">Back to Form</a>
+
+</body>
+</html>
+
+==================== Run ====================
+http://localhost:8080/WebApplication2/newjsp.jsp

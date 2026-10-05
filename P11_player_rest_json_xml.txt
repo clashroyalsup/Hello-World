@@ -1,0 +1,70 @@
+PRACTICAL 11
+Aim: Create REST API that returns data in both XML and JSON format of player database.
+
+==================== Step 1: Create database (MySQL) ====================
+mysql> create database ty;
+Query OK, 1 row affected (0.00 sec)
+
+mysql> use ty;
+Database changed
+mysql> show tables;
+Empty set (0.00 sec)
+
+==================== Step 9: Describe player in ty database ====================
+mysql> show tables;
++--------------+
+| Tables_in_ty |
++--------------+
+| player       |
+| sequence     |
++--------------+
+2 rows in set (0.00 sec)
+
+mysql> use player;
+ERROR 1049 (42000): Unknown database 'player'
+mysql> desc player;
++-------+------------+------+-----+---------+-------+
+| Field | Type       | Null | Key | Default | Extra |
++-------+------------+------+-----+---------+-------+
+| ID    | bigint(20) | NO   | PRI | NULL    |       |
++-------+------------+------+-----+---------+-------+
+
+==================== Step 10: Insert the details of the player ====================
+mysql> insert into player values(1);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into player values(2);
+Query OK, 1 row affected (0.00 sec)
+
+==================== Step 13: JSON output (PlayerFacadeREST findAll) ====================
+@GET
+@Override
+@Produces({"application/json"})
+public List<Player> findAll() {
+    return super.findAll();
+}
+
+Output shown in the doc:
+[{"id":1},{"id":2}]
+
+==================== Step 14: XML output (PlayerFacadeREST findAll) ====================
+@GET
+@Override
+@Produces({"application/xml"})
+public List<Player> findAll() {
+    return super.findAll();
+}
+
+Output shown in the doc:
+<players>
+  <player>
+    <id>1</id>
+  </player>
+  <player>
+    <id>2</id>
+  </player>
+</players>
+
+Other steps (entity class Player1 in package ty, RESTful Web Services from
+Entity Classes with tycs.Player, test resource URI) are NetBeans wizards with
+no hand-written code in the doc.
