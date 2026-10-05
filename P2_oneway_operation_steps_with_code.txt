@@ -1,0 +1,139 @@
+Practical 2: SOAP web service - One-Way operation (NetBeans + MySQL)
+AIM: Write a SOAP web service that receives a request and returns a response,
+using a database insert (student table).
+
+
+==================== PART A: DATABASE AND PROJECT ====================
+
+Step 1: Create the MySQL database
+
+CREATE DATABASE ty49;
+USE ty49;
+CREATE TABLE student (id INT PRIMARY KEY, name VARCHAR(50), class VARCHAR(50));
+
+Step 2: Create the Web Application
+  - File > New Project > Java Web > Web Application.
+  - Project Name: WebApplication2
+  - Server: GlassFish Server 3+
+  - Java EE: Java EE 6 Web
+
+Step 3: Add the MySQL JDBC connector
+  - Right-click Libraries > Add JAR/Folder.
+  - Select mysql-connector-java.jar
+
+Step 4: Create the Web Service
+  - Right-click the project > New > Web Service.
+  - Name: oneway
+  - Package: tyc9
+
+Step 5: Write oneway.java
+
+---------- oneway.java (package tyc9) ----------
+package tyc9;
+
+import java.sql.DriverManager;
+import javax.jws.WebService;
+import javax.jws.WebMethod;
+import javax.jws.WebParam;
+
+@WebService(serviceName = "oneway")
+public class oneway {
+
+    @WebMethod(operationName = "hello")
+    public String hello(@WebParam(name = "name") String txt) {
+        return "Hello " + txt + " !";
+    }
+
+    @WebMethod(operationName = "insertstudent")
+    public String insertstudent(
+            @WebParam(name = "id") int id,
+            @WebParam(name = "name") String name,
+            @WebParam(name = "sclass") final String sclass) {
+        try {
+            Class.forName("com.mysql.jdbc.Driver");
+            java.sql.Connection con = DriverManager.getConnection(
+                    "jdbc:mysql://localhost:3306/ty49?useSSL=false", "root", "mysql");
+            java.sql.PreparedStatement ps = con.prepareStatement(
+                    "INSERT INTO student VALUES (?, ?, ?)");
+            ps.setInt(1, id);
+            ps.setString(2, name);
+            ps.setString(3, sclass);
+            int i = ps.executeUpdate();
+            ps.close();
+            con.close();
+            return i + " record inserted";
+        } catch (Exception e) {
+            return "Error = " + e;
+        }
+    }
+}
+
+Step 6: Deploy the web service
+  - Right-click project > Clean and Build.
+  - Right-click project > Run.
+  - Right-click oneway.java > Test Web Service to verify.
+
+==================== PART B: CLIENT ====================
+
+Step 7: Create the input form (newjsp.jsp)
+
+---------- newjsp.jsp ----------
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head><title>Student Entry Form</title></head>
+<body>
+<h2>Student Information Entry</h2>
+<form action="index.jsp" method="POST">
+Student ID: <input type="text" name="t1" /><br>
+Student Name: <input type="text" name="t2" /><br>
+Student Class: <input type="text" name="t3" /><br>
+<input type="submit" value="Insert">
+</form>
+</body>
+</html>
+
+Step 8: Add the Web Service Client
+  - Right-click project > New > Web Service Client.
+  - Select Project as the WSDL source.
+  - Browse to WebApplication2 > Web Services > oneway.
+  - Click Finish.
+
+Step 9: Create the client JSP (index.jsp)
+
+---------- index.jsp ----------
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head><title>Web Service Client</title></head>
+<body>
+<h2>Web Service Invocation Result</h2><hr/>
+<% try {
+
+tyc9.Oneway_Service service = new tyc9.Oneway_Service();
+tyc9.Oneway port = service.getOnewayPort();
+
+int id = Integer.parseInt(request.getParameter("t1"));
+java.lang.String name = request.getParameter("t2");
+
+java.lang.String sclass = request.getParameter("t3");
+
+java.lang.String result = port.insertstudent(id, name, sclass);
+out.println("<b>Result:</b> " + result);
+
+} catch (Exception ex) {
+
+out.println("<b>Error:</b> " + ex.getMessage());
+
+} %><hr/>
+
+<a href="newjsp.jsp">Back to Form</a>
+
+</body>
+</html>
+
+Step 10: Run the application
+  - Right-click project > Clean and Build > Run.
+  - Open in the browser:
+http://localhost:8080/WebApplication2/newjsp.jsp
+  - Enter student details and click Insert. The result shows "1 record inserted".
